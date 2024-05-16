@@ -19,6 +19,7 @@ use crate::{config::Config, report_client::ReportClient};
 use async_trait::async_trait;
 use std::{fmt::Display, sync::Arc};
 use tokio::time;
+use tokio::time::{Duration, timeout};
 
 pub enum WatcherType {
     Idle,
@@ -127,12 +128,28 @@ async fn filter_first_supported(
 
 pub async fn run_first_supported(client: Arc<ReportClient>, watcher_type: &WatcherType) -> bool {
     let supported_watcher = filter_first_supported(&client, watcher_type).await;
+    let timeout_duration = Duration::from_secs(5); // Set your desired timeout duration in seconds
     if let Some(mut watcher) = supported_watcher {
         info!("Starting {watcher_type} watcher");
         loop {
-            if let Err(e) = watcher.run_iteration(&client).await {
-                error!("Error on {watcher_type} iteration: {e}");
+            match timeout(timeout_duration, watcher.run_iteration(&client)).await {
+                Ok(result) => {
+                    match result {
+                        Ok(_) => {
+                            // Handle successful iteration here
+                        }
+                        Err(e) => {
+                            error!("Error on {watcher_type} iteration: {e}");
+                        }
+                    }
+                }
+                Err(_) => {
+                    error!("Timeout occurred while waiting for {watcher_type} iteration");
+                }
             }
+            // if let Err(e) = watcher.run_iteration(&client).await {
+            //     error!("Error on {watcher_type} iteration: {e}");
+            // }
             time::sleep(watcher_type.sleep_time(&client.config)).await;
         }
     }
