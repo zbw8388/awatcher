@@ -111,10 +111,10 @@ async fn filter_first_supported(
                 client,
                 "KWin window (script)"
             ));
-            watch!(create_watcher::<x11_window::WindowWatcher>(
-                client,
-                "X11 window"
-            ));
+            // watch!(create_watcher::<x11_window::WindowWatcher>(
+            //     client,
+            //     "X11 window"
+            // ));
             #[cfg(feature = "gnome")]
             watch!(create_watcher::<gnome_window::WindowWatcher>(
                 client,
